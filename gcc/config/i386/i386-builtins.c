@@ -2085,6 +2085,25 @@ make_var_decl (tree type, const char *name)
   return new_decl;
 }
 
+static GTY(()) tree __cpu_model_var;
+static GTY(()) tree __processor_model_type;
+
+static void
+init_cpu_model_var()
+{
+  if (__cpu_model_var != NULL_TREE)
+    {
+      gcc_assert(__processor_model_type != NULL_TREE);
+      return;
+    }
+
+  __processor_model_type = build_processor_model_struct ();
+  __cpu_model_var = make_var_decl (__processor_model_type,
+				   "__cpu_model");
+
+  varpool_node::add (__cpu_model_var);
+}
+
 /* FNDECL is a __builtin_cpu_is or a __builtin_cpu_supports call that is folded
    into an integer defined in libgcc/config/i386/cpuinfo.c */
 
@@ -2096,13 +2115,7 @@ fold_builtin_cpu (tree fndecl, tree *args)
     = (enum ix86_builtins) DECL_MD_FUNCTION_CODE (fndecl);
   tree param_string_cst = NULL;
 
-  tree __processor_model_type = build_processor_model_struct ();
-  tree __cpu_model_var = make_var_decl (__processor_model_type,
-					"__cpu_model");
-
-
-  varpool_node::add (__cpu_model_var);
-
+  init_cpu_model_var ();
   gcc_assert ((args != NULL) && (*args != NULL));
 
   param_string_cst = *args;
